@@ -50,17 +50,87 @@ use IO;
                                 );
 
     $writer->xmlDecl("UTF-8");
-    $writer->doctype('regmap');
-    $writer->comment('Blank REGMAP page');
-    $writer->startTag('regmap', 'ver'=>'0.0', 'repo'=>'https://github.com/mammenx/regmap');
-      $writer->startTag('reg', 'width'=>'16', 'addr'=>'0x0', 'name'=>'Control Register');
-        $writer->comment("This register contains fields to control the module");
-        $writer->startTag('field', 'lsbit'=>'0', 'msbit'=>'7', 'access'=>'RW', 'name'=>'Mode');
-        $writer->characters("This field selects the mode of operation. Valid cases are: 0x0 - > mode0, 0x1->mode1");
-      $writer->endTag('field');
+    $writer->pi('xml-stylesheet', "type=\"text/xsl\" href=\"$name.xsl\"");
+    # $writer->doctype('regmap');
+    $writer->startTag('regmap');
+      $writer->dataElement('ver', '0.0');
+      $writer->dataElement('repo', 'https://github.com/mammenx/regmap');
+
+      $writer->startTag('reg');
+        $writer->dataElement('width', '16');
+        $writer->dataElement('addr', '0x0');
+        $writer->dataElement('name', 'Control Register');
+        $writer->dataElement('desc', 'This register contains fields to control the module');
+
+        $writer->startTag('field');
+          $writer->dataElement('lsidx', '0');
+          $writer->dataElement('msidx', '7');
+          $writer->dataElement('access', 'RW');
+          $writer->dataElement('name', 'Mode');
+          $writer->dataElement('desc', 'This field selects the mode of operation. Valid cases are: 0x0 - > mode0, 0x1->mode1');
+        $writer->endTag('field');
       $writer->endTag('reg');
     $writer->endTag('regmap');
     $writer->end();
+  }
+
+  # Write a simple data element.
+  sub writeRawElement {
+    my ($self, $name, $data, @atts) = (@_);
+    $self->startTag($name, @atts);
+    $self->raw($data);
+    $self->endTag($name);
+  }
+
+  sub main'createXSL {
+    my  ($name) = @_;
+
+    my  $file = new IO::File(">$name.xsl");
+    my  $writer = new XML::Writer(OUTPUT=>$file, 
+                                  DATA_MODE=>'true',
+                                  UNSAFE=>'true',
+                                  DATA_INDENT=>'2',
+                                  ENCODING=>'utf-8'
+                                );
+
+    $writer->xmlDecl("UTF-8");
+    $writer->startTag('xsl:stylesheet', 'version'=>'1.0', 'xmlns:xsl'=>'http://www.w3.org/1999/XSL/Transform');
+      $writer->startTag('xsl:template', 'match'=>'/');
+        $writer->startTag('html');
+          $writer->startTag('body');
+            writeRawElement($writer, 'h2', "REGMAP v<xsl:value-of select=\"regmap/ver\"/>");
+ 
+            $writer->startTag('xsl:for-each', 'select'=>"regmap/reg");
+              writeRawElement($writer, 'p', "Register Name : <xsl:value-of select=\"name\"/>");
+              writeRawElement($writer, 'p', "Register Addr : <xsl:value-of select=\"addr\"/>");
+              writeRawElement($writer, 'p', "Description : <xsl:value-of select=\"desc\"/>");
+
+              # Construct Table
+              $writer->startTag('table', 'border'=>"1");
+                $writer->startTag('tr', 'bgcolor'=>"#9acd32");
+                  $writer->dataElement('th', 'Field');
+                  $writer->dataElement('th', 'Range');
+                  $writer->dataElement('th', 'Access');
+                  $writer->dataElement('th', 'Description');
+                $writer->endTag('tr');
+
+                $writer->startTag('xsl:for-each', 'select'=>"field");
+                  $writer->startTag('tr');
+                    writeRawElement($writer, 'td', "<xsl:value-of select=\"name\"/>");
+                    writeRawElement($writer, 'td', "<xsl:value-of select=\"msidx\"/>:<xsl:value-of select=\"lsidx\"/>");
+                    writeRawElement($writer, 'td', "<xsl:value-of select=\"access\"/>");
+                    writeRawElement($writer, 'td', "<xsl:value-of select=\"desc\"/>");
+                  $writer->endTag('tr');
+                $writer->endTag('xsl:for-each');
+
+              $writer->endTag('table');
+            $writer->endTag('xsl:for-each');
+          $writer->endTag('body');
+        $writer->endTag('html');
+      $writer->endTag('xsl:template');
+    $writer->endTag('xsl:stylesheet');
+    $writer->end();
+
   }
 
   sub main'displayREGMAP  {

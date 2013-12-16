@@ -35,5 +35,6 @@ use xmlManager;
   bar();
   newREGMAP("syn_reg_map");
   displayREGMAP("syn_reg_map");
+  createXSL("syn_reg_map");
 
 1;
