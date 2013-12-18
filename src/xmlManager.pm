@@ -30,9 +30,10 @@ package xmlManager;
 use strict;
 use warnings;
 
-use XML::Simple;
 use Data::Dumper;
 use XML::Writer;
+use XML::Simple;
+use XML::Twig;
 use IO;
 
   sub main'bar {
@@ -40,7 +41,7 @@ use IO;
   }
 
   sub main'newREGMAP {
-    my  ($name) = @_;
+    my  ($name,$ver,$dwidth) = @_;
 
     my  $file = new IO::File(">$name.xml");
     my  $writer = new XML::Writer(OUTPUT=>$file, 
@@ -53,23 +54,8 @@ use IO;
     $writer->pi('xml-stylesheet', "type=\"text/xsl\" href=\"$name.xsl\"");
     # $writer->doctype('regmap');
     $writer->startTag('regmap');
-      $writer->dataElement('ver', '0.0');
+      $writer->dataElement('ver', $ver);
       $writer->dataElement('repo', 'https://github.com/mammenx/regmap');
-
-      $writer->startTag('reg');
-        $writer->dataElement('width', '16');
-        $writer->dataElement('addr', '0x0');
-        $writer->dataElement('name', 'Control Register');
-        $writer->dataElement('desc', 'This register contains fields to control the module');
-
-        $writer->startTag('field');
-          $writer->dataElement('lsidx', '0');
-          $writer->dataElement('msidx', '7');
-          $writer->dataElement('access', 'RW');
-          $writer->dataElement('name', 'Mode');
-          $writer->dataElement('desc', 'This field selects the mode of operation. Valid cases are: 0x0 - > mode0, 0x1->mode1');
-        $writer->endTag('field');
-      $writer->endTag('reg');
     $writer->endTag('regmap');
     $writer->end();
   }
@@ -132,6 +118,109 @@ use IO;
     $writer->end();
 
   }
+
+  sub main'addNewReg  {
+    my  ($prj,$name,$addr,$desc) = @_;
+
+    my $twig  = new XML::Twig;
+
+    $twig->parsefile("$prj.xml");
+
+    my $regmap= $twig->root;  #get the root of the twig
+
+    my $ereg = new XML::Twig::Elt('reg');  #Create new reg element
+
+    my $ewidth  = new XML::Twig::Elt('width', $main::dwidth);
+    $ewidth->paste('last_child', $ereg);   #Append under reg tag
+
+    my $ename  = new XML::Twig::Elt('name', $name);
+    $ename->paste('last_child', $ereg);   #Append under reg tag
+
+    my $eaddr  = new XML::Twig::Elt('addr', $addr);
+    $eaddr->paste('last_child', $ereg);   #Append under reg tag
+
+    my $edesc  = new XML::Twig::Elt('desc', $desc);
+    $edesc->paste('last_child', $ereg);   #Append under reg tag
+
+    $ereg->paste('last_child', $regmap);   #Append under regmap tag
+
+    my  $fclose = new IO::File(">$prj.xml");
+    #$twig->flush($fclose,  pretty_print => 'indented');
+    $twig->print($fclose,  pretty_print => 'indented');
+  }
+
+  sub main'addNewField  {
+    my  ($prj,$name,$reg,$acc,$msidx,$lsidx,$desc) = @_;
+
+    my $twig  = new XML::Twig(
+      twig_handlers =>  { reg =>  sub { # Anonymous sub
+          my( $twig, $ereg)= @_;
+
+          #print  "ereg:addr - " . $ereg->first_child('addr')->text;
+
+          my  $reg_addr = $ereg->first_child('addr')->text;  # Get the addr of this register
+
+          #if($reg_name  eq  $reg) { #Add field here
+          if($reg_addr  eq  $reg) { #Add field here
+            my  $efield = new XML::Twig::Elt('field');  #Create new field element
+            my  $ename  = new XML::Twig::Elt('name',  $name);   #Create new name element
+            my  $eacc   = new XML::Twig::Elt('access',  $acc); #Create new access element
+            my  $emsidx = new XML::Twig::Elt('msidx',  $msidx); #Create new msidx element
+            my  $elsidx = new XML::Twig::Elt('lsidx',  $lsidx); #Create new lsidx element
+            my  $edesc  = new XML::Twig::Elt('desc',  $desc); #Create new desc element
+
+            $ename->paste('last_child', $efield);   #Append under field tag
+            $eacc->paste('last_child', $efield);   #Append under field tag
+            $emsidx->paste('last_child', $efield);   #Append under field tag
+            $elsidx->paste('last_child', $efield);   #Append under field tag
+            $edesc->paste('last_child', $efield);   #Append under field tag
+
+            $efield->paste('last_child', $ereg);   #Append under regmap tag
+          }
+        }
+      }
+    );
+
+    #my $regmap= $twig->root;  #get the root of the twig
+    # my @regarry = $regmap->children;  #Get an array of all registers
+
+    # foreach my $ereg (@regarry)  {
+    #   #my  $reg_name = $ereg->first_child('name')->text;  # Get the name of this register
+    #   my  $reg_addr = $ereg->{'addr'};  # Get the addr of this register
+
+    #   #if($reg_name  eq  $reg) { #Add field here
+    #   if($reg_addr  eq  $reg) { #Add field here
+    #     my  $efield = new XML::Twig::Elt('field');  #Create new field element
+    #     my  $ename  = new XML::Twig::Elt('name',  $name);   #Create new name element
+    #     my  $eacc   = new XML::Twig::Elt('access',  $acc); #Create new access element
+    #     my  $emsidx = new XML::Twig::Elt('msidx',  $msidx); #Create new msidx element
+    #     my  $elsidx = new XML::Twig::Elt('lsidx',  $lsidx); #Create new lsidx element
+    #     my  $edesc  = new XML::Twig::Elt('desc',  $desc); #Create new desc element
+
+    #     $ename->paste('last_child', $efield);   #Append under field tag
+    #     $eacc->paste('last_child', $efield);   #Append under field tag
+    #     $emsidx->paste('last_child', $efield);   #Append under field tag
+    #     $elsidx->paste('last_child', $efield);   #Append under field tag
+    #     $edesc->paste('last_child', $efield);   #Append under field tag
+
+    #     $efield->paste('last_child', $regmap);   #Append under regmap tag
+
+    #     my  $fclose = new IO::File(">$prj.xml");
+    #     $twig->flush($fclose,  pretty_print => 'indented');
+ 
+    #     return 1;
+    #   }
+    # }
+
+    $twig->parsefile("$prj.xml");
+
+    my  $fclose = new IO::File(">$prj.xml");
+    #$twig->flush($fclose,  pretty_print => 'indented');
+    $twig->print($fclose,  pretty_print => 'indented');
+
+    return 1;
+ }
+
 
   sub main'displayREGMAP  {
     my  ($name) = @_;
