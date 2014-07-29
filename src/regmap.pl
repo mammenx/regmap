@@ -39,6 +39,7 @@ use xmlManager;
   $main::prompt     = "regmap/>";
   $main::prj_name   = "regmap";
   $main::dwidth     = "32";
+  $main::xmlStyle   = "xsl";
 
   sub displayGreet  {
     print "REGMAP v$main::regmapVer\n";
@@ -214,14 +215,15 @@ use xmlManager;
   sub displayHelp {
     print "\tType 'quit' or 'exit' to exit\n";
     print "\n\tOptions  ->\n";
-    print "\t\tproject <name>\t- Update project name\n";
-    print "\t\tcreate  <name>\t- Create blank xml database with [optional]project name\n";
-    print "\t\tdisplay <name>\t- Display contents of xml database with [optional]name\n";
-    print "\t\tdwidth  <size>\t- Update the data width of the regspace\n";
+    print "\t\tproject   <name>\t- Update project name\n";
+    print "\t\tcreate    <name>\t- Create blank xml database with [optional]project name\n";
+    print "\t\tdisplay   <name>\t- Display contents of xml database with [optional]name\n";
+    print "\t\tdwidth    <size>\t- Update the data width of the regspace\n";
+    print "\t\txmlStyle  <name>\t- Change the XML Stylesheet type [xsl,css]\n";
     print "\n\tToo add a register->\n";
     print "\t\tadd reg -name <name> -addr <addr-hex> -desc \"<desription>\"\n";
     print "\n\tToo add a field->\n";
-    print "\t\tadd field -name <name> -reg <parent-reg> -acc <access-type[RO,WO,RW]> -msidx <most-significant-bit-index>\n\t\t-lxidx <least-significant-bit-index> -desc \"<desription>\"\n";
+    print "\t\tadd field -name <name> -reg <parent-reg> -acc <access-type[RO,WO,RW]> -msidx <most-significant-bit-index>\n\t\t-lsidx <least-significant-bit-index> -desc \"<desription>\"\n";
   }
 
   sub parseCommand  {
@@ -266,11 +268,19 @@ use xmlManager;
             $idx++;
           }
 
-          print "Creating blank xml file : $main::prj_name.xml\n";
-          newREGMAP("$main::prj_name",$main::regmapVer,$main::dwidth);
+          if($main::xmlStyle  eq  'xsl')  {
+            print "Creating blank xsl file : $main::prj_name.xsl\n";
+            createXSL("$main::prj_name");
+          } elsif($main::xmlStyle eq  'css')  {
+            print "Creating blank css file : $main::prj_name.css\n";
+            createCSS("$main::prj_name");
+          } else  {
+            print "Unknown XML Stylesheet : $main::xmlStyle\n";
+            return;
+          }
 
-          print "Creating blank xsl file : $main::prj_name.xsl\n";
-          createXSL("$main::prj_name");
+          print "Creating blank xml file : $main::prj_name.xml\n";
+          newREGMAP("$main::prj_name",$main::regmapVer,$main::dwidth,$main::xmlStyle);
         }
 
         when("display") {
@@ -290,6 +300,11 @@ use xmlManager;
           $idx++;
         }
 
+        when("xmlStyle") {
+          $main::xmlStyle = $cmd_arry[$idx+1];
+          print "Updated xmlStyle to : $main::xmlStyle\n";
+          $idx++;
+        }
 
         default { print "Unknown command : $cmd_arry[$idx]\n"; }
       }

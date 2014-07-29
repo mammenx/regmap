@@ -41,7 +41,7 @@ use IO;
   }
 
   sub main'newREGMAP {
-    my  ($name,$ver,$dwidth) = @_;
+    my  ($name,$ver,$dwidth,$xmlStyle) = @_;
 
     my  $file = new IO::File(">$name.xml");
     my  $writer = new XML::Writer(OUTPUT=>$file, 
@@ -51,7 +51,16 @@ use IO;
                                 );
 
     $writer->xmlDecl("UTF-8");
-    $writer->pi('xml-stylesheet', "type=\"text/xsl\" href=\"$name.xsl\"");
+
+    if($xmlStyle  eq  'xsl')  {
+      $writer->pi('xml-stylesheet', "type=\"text/xsl\" href=\"$name.xsl\"");
+    } elsif($xmlStyle eq  'css')  {
+      $writer->pi('xml-stylesheet', "type=\"text/css\" href=\"$name.css\"");
+    } else  {
+      print "Unknown XML Style : $xmlStyle\n";
+      die;
+    }
+
     # $writer->doctype('regmap');
     $writer->startTag('regmap');
       $writer->dataElement('ver', $ver);
@@ -87,29 +96,32 @@ use IO;
             writeRawElement($writer, 'h2', "REGMAP v<xsl:value-of select=\"regmap/ver\"/>");
  
             $writer->startTag('xsl:for-each', 'select'=>"regmap/reg");
-              writeRawElement($writer, 'p', "Register Name : <xsl:value-of select=\"name\"/>");
-              writeRawElement($writer, 'p', "Register Addr : <xsl:value-of select=\"addr\"/>");
-              writeRawElement($writer, 'p', "Description : <xsl:value-of select=\"desc\"/>");
+              $writer->startTag('table', 'border'=>"1", 'bgcolor'=>"#ffffff");
+                writeRawElement($writer, 'p', "Register Name : <xsl:value-of select=\"name\"/>");
+                writeRawElement($writer, 'p', "Register Addr : <xsl:value-of select=\"addr\"/>");
+                writeRawElement($writer, 'p', "Description : <xsl:value-of select=\"desc\"/>");
 
-              # Construct Table
-              $writer->startTag('table', 'border'=>"1");
-                $writer->startTag('tr', 'bgcolor'=>"#9acd32");
-                  $writer->dataElement('th', 'Field');
-                  $writer->dataElement('th', 'Range');
-                  $writer->dataElement('th', 'Access');
-                  $writer->dataElement('th', 'Description');
-                $writer->endTag('tr');
-
-                $writer->startTag('xsl:for-each', 'select'=>"field");
-                  $writer->startTag('tr');
-                    writeRawElement($writer, 'td', "<xsl:value-of select=\"name\"/>");
-                    writeRawElement($writer, 'td', "<xsl:value-of select=\"msidx\"/>:<xsl:value-of select=\"lsidx\"/>");
-                    writeRawElement($writer, 'td', "<xsl:value-of select=\"access\"/>");
-                    writeRawElement($writer, 'td', "<xsl:value-of select=\"desc\"/>");
+                # Construct Table
+                $writer->startTag('table', 'border'=>"1");
+                  $writer->startTag('tr', 'bgcolor'=>"#9acd32");
+                    $writer->dataElement('th', 'Field');
+                    $writer->dataElement('th', 'Range');
+                    $writer->dataElement('th', 'Access');
+                    $writer->dataElement('th', 'Description');
                   $writer->endTag('tr');
-                $writer->endTag('xsl:for-each');
 
+                  $writer->startTag('xsl:for-each', 'select'=>"field");
+                    $writer->startTag('tr');
+                      writeRawElement($writer, 'td', "<xsl:value-of select=\"name\"/>");
+                      writeRawElement($writer, 'td', "<xsl:value-of select=\"msidx\"/>:<xsl:value-of select=\"lsidx\"/>");
+                      writeRawElement($writer, 'td', "<xsl:value-of select=\"access\"/>");
+                      writeRawElement($writer, 'td', "<xsl:value-of select=\"desc\"/>");
+                    $writer->endTag('tr');
+                  $writer->endTag('xsl:for-each');
+
+                $writer->endTag('table');
               $writer->endTag('table');
+              writeRawElement($writer, 'p', "");
             $writer->endTag('xsl:for-each');
           $writer->endTag('body');
         $writer->endTag('html');
