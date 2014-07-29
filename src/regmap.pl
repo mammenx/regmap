@@ -52,7 +52,9 @@ use xmlManager;
     #print "arguments:@args\n";
 
     my  $name = undef;
-    my  $addr = undef;
+    my  $node = undef;
+    my  $target = undef;
+    my  $offset = undef;
     my  $desc = undef;
 
     for(my $idx=0; $idx<@args;  $idx++) {
@@ -63,10 +65,20 @@ use xmlManager;
           #print "name:$name\n";
         }
 
-        when("-addr") {
-          $addr = $args[$idx+1];
+        when("-offset") {
+          $offset = $args[$idx+1];
           $idx++;
-          #print "addr:$addr\n";
+          #print "offset:$offset\n";
+        }
+
+        when("-node") {
+          $node = $args[$idx+1];
+          $idx++;
+        }
+
+        when("-target") {
+          $target = $args[$idx+1];
+          $idx++;
         }
 
         when("-desc") {
@@ -96,10 +108,22 @@ use xmlManager;
       chomp($name);
     }
 
-    if(!(defined $addr && length $addr > 0))  {
-      print "reg/add>Enter the addr for this register in hex\n";
-      $addr =  <STDIN>;
-      chomp($addr);
+    if(!(defined $node && length $node > 0))  {
+      print "reg/add>Enter the node for this register in hex\n";
+      $node =  <STDIN>;
+      chomp($node);
+    }
+
+    if(!(defined $target && length $target > 0))  {
+      print "reg/add>Enter the target for this register in hex\n";
+      $target =  <STDIN>;
+      chomp($target);
+    }
+
+    if(!(defined $offset && length $offset > 0))  {
+      print "reg/add>Enter the offset for this register in hex\n";
+      $offset =  <STDIN>;
+      chomp($offset);
     }
 
     if(!(defined $desc && length $desc > 0))  {
@@ -108,7 +132,7 @@ use xmlManager;
       chomp($desc);
     }
 
-    addNewReg($main::prj_name,$name,$addr,$desc);
+    addNewReg($main::prj_name,$name,$node,$target,$offset,$desc);
   }
 
   sub parseFieldArgs  {
@@ -221,7 +245,7 @@ use xmlManager;
     print "\t\tdwidth    <size>\t- Update the data width of the regspace\n";
     print "\t\txmlStyle  <name>\t- Change the XML Stylesheet type [xsl,css]\n";
     print "\n\tToo add a register->\n";
-    print "\t\tadd reg -name <name> -addr <addr-hex> -desc \"<desription>\"\n";
+    print "\t\tadd reg -name <name> -node <node-hex> -target <target-hex> -offset <offset-hex> -desc \"<desription>\"\n";
     print "\n\tToo add a field->\n";
     print "\t\tadd field -name <name> -reg <parent-reg> -acc <access-type[RO,WO,RW]> -msidx <most-significant-bit-index>\n\t\t-lsidx <least-significant-bit-index> -desc \"<desription>\"\n";
   }

@@ -98,8 +98,11 @@ use IO;
             $writer->startTag('xsl:for-each', 'select'=>"regmap/reg");
               $writer->startTag('table', 'border'=>"1", 'bgcolor'=>"#ffffff");
                 writeRawElement($writer, 'p', "Register Name : <xsl:value-of select=\"name\"/>");
+                writeRawElement($writer, 'p', "Node          : <xsl:value-of select=\"node\"/>");
+                writeRawElement($writer, 'p', "Target        : <xsl:value-of select=\"target\"/>");
+                writeRawElement($writer, 'p', "Offset        : <xsl:value-of select=\"offset\"/>");
                 writeRawElement($writer, 'p', "Register Addr : <xsl:value-of select=\"addr\"/>");
-                writeRawElement($writer, 'p', "Description : <xsl:value-of select=\"desc\"/>");
+                writeRawElement($writer, 'p', "Description   : <xsl:value-of select=\"desc\"/>");
 
                 # Construct Table
                 $writer->startTag('table', 'border'=>"1");
@@ -132,7 +135,7 @@ use IO;
   }
 
   sub main'addNewReg  {
-    my  ($prj,$name,$addr,$desc) = @_;
+    my  ($prj,$name,$node,$target,$offset,$desc) = @_;
 
     my $twig  = new XML::Twig;
 
@@ -148,13 +151,25 @@ use IO;
     my $ename  = new XML::Twig::Elt('name', $name);
     $ename->paste('last_child', $ereg);   #Append under reg tag
 
-    my $eaddr  = new XML::Twig::Elt('addr', $addr);
+    my $enode  = new XML::Twig::Elt('node', $node);
+    $enode->paste('last_child', $ereg);   #Append under reg tag
+
+    my $etarget= new XML::Twig::Elt('target', $target);
+    $etarget->paste('last_child', $ereg);   #Append under reg tag
+
+    my $eoffset  = new XML::Twig::Elt('offset', $offset);
+    $eoffset->paste('last_child', $ereg);   #Append under reg tag
+
+    my $eaddr   = new XML::Twig::Elt('addr', "$node.$target.$offset");
     $eaddr->paste('last_child', $ereg);   #Append under reg tag
 
     my $edesc  = new XML::Twig::Elt('desc', $desc);
     $edesc->paste('last_child', $ereg);   #Append under reg tag
 
     $ereg->paste('last_child', $regmap);   #Append under regmap tag
+
+    #Sort registers based on address
+    $regmap->sort_children_on_field('addr' , type => 'alpha', order => 'normal');
 
     my  $fclose = new IO::File(">$prj.xml");
     #$twig->flush($fclose,  pretty_print => 'indented');
@@ -193,38 +208,17 @@ use IO;
       }
     );
 
-    #my $regmap= $twig->root;  #get the root of the twig
-    # my @regarry = $regmap->children;  #Get an array of all registers
-
-    # foreach my $ereg (@regarry)  {
-    #   #my  $reg_name = $ereg->first_child('name')->text;  # Get the name of this register
-    #   my  $reg_addr = $ereg->{'addr'};  # Get the addr of this register
-
-    #   #if($reg_name  eq  $reg) { #Add field here
-    #   if($reg_addr  eq  $reg) { #Add field here
-    #     my  $efield = new XML::Twig::Elt('field');  #Create new field element
-    #     my  $ename  = new XML::Twig::Elt('name',  $name);   #Create new name element
-    #     my  $eacc   = new XML::Twig::Elt('access',  $acc); #Create new access element
-    #     my  $emsidx = new XML::Twig::Elt('msidx',  $msidx); #Create new msidx element
-    #     my  $elsidx = new XML::Twig::Elt('lsidx',  $lsidx); #Create new lsidx element
-    #     my  $edesc  = new XML::Twig::Elt('desc',  $desc); #Create new desc element
-
-    #     $ename->paste('last_child', $efield);   #Append under field tag
-    #     $eacc->paste('last_child', $efield);   #Append under field tag
-    #     $emsidx->paste('last_child', $efield);   #Append under field tag
-    #     $elsidx->paste('last_child', $efield);   #Append under field tag
-    #     $edesc->paste('last_child', $efield);   #Append under field tag
-
-    #     $efield->paste('last_child', $regmap);   #Append under regmap tag
-
-    #     my  $fclose = new IO::File(">$prj.xml");
-    #     $twig->flush($fclose,  pretty_print => 'indented');
- 
-    #     return 1;
-    #   }
-    # }
-
     $twig->parsefile("$prj.xml");
+
+    my $regmap= $twig->root;  #get the root of the twig
+    my @eregs = $regmap->children('reg'); #Get list of registers
+
+    foreach my  $ereg (@eregs)  {
+      #Sort fields based on indexes
+      #print "Sorting ereg : " . $ereg->first_child('name')->text . "\n";
+      #$ereg->sort_children_on_field('lsidx' , type => 'alpha', order => 'normal');
+      $ereg->sort_children_on_field('lsidx' , type => 'numeric', order => 'normal');
+    }
 
     my  $fclose = new IO::File(">$prj.xml");
     #$twig->flush($fclose,  pretty_print => 'indented');
@@ -233,6 +227,9 @@ use IO;
     return 1;
  }
 
+ sub  sortFields  {
+    my  ($prj,$name,$reg) = @_;
+ }
 
   sub main'displayREGMAP  {
     my  ($name) = @_;
